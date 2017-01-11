@@ -1,1 +1,2 @@
 set PATH=CMinGWbin;%PATH%
+gcc *.c -o projet
