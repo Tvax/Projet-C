@@ -169,8 +169,13 @@ ListeAdherent insEnTeteAd(ListeAdherent l, Adherent ad) {
 	return m;
 }
 
-ListeAdherent inscritApTh(ListeAdherent l) {
-
+void inscritApTh(ListeAdherent l) {
+	while (l != NULL) {
+		if (l->ad.nbApMidi > 0)
+			l = insAd(l, l->ad);
+		l = l->suiv;
+	}
+	affichListeAd(l);
 }
 
 ListeAdherent insAd(ListeAdherent l, Adherent ad) {

@@ -64,6 +64,8 @@ int listTailleAd(ListeAdherent head);
 bool peutEmprunt(ListeAdherent l, ListeJeux lJeux, int numAd, int numJeux);
 ListeJeux empruntJeuxJ(ListeJeux jeux, int numJeux);
 ListeAdherent empruntJeuxAd(ListeAdherent ad, ListeJeux jeux, int numAd, int numJeux);
+void inscritApTh(ListeAdherent l);
+void adherentEnRetard(ListeAdherent l); //a faire
 
 
 ListeJeux ensVideJeux();
