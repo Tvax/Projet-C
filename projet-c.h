@@ -9,13 +9,14 @@ typedef struct {
 	int AnnIns;
 }Date;
 typedef struct {
-	char* Nom;
+	char Nom[20];
 	int codeJeux;
 	Date d;
 	bool emprunte; //si un jeux est emprunte ou non;
 }Jeux;
 typedef struct {
-	char *Nom;
+	char Nom[20];
+	int numAp;
 	Date d;
 	int nbPlaces;
 }ApTh;
@@ -23,10 +24,10 @@ typedef struct {
 typedef struct {
 	int numAd;
 	char Nom[20];
-	Jeux JeuxEmpruntes[2];
+	Jeux JeuxEmpruntes[3]; //3 parce qu'on commence a 1 et pas à 0
 	int nbJeux;
 	Date d;
-	ApTh** ApMidiIns;
+	ApTh *ApMidiIns;
 	int nbApMidi;
 }Adherent;
 
@@ -64,6 +65,9 @@ int listTailleAd(ListeAdherent head);
 bool peutEmprunt(ListeAdherent l, ListeJeux lJeux, int numAd, int numJeux);
 ListeJeux empruntJeuxJ(ListeJeux jeux, int numJeux);
 ListeAdherent empruntJeuxAd(ListeAdherent ad, ListeJeux jeux, int numAd, int numJeux);
+bool peutInscrApth(ListeAdherent l, ListeAp ap, int numAd, int numAp);
+ListeAdherent inscripApthAd(ListeAdherent ad, ListeAp ap, int numAd, int numAp);
+ListeAp inscripApthAp(ListeAp ap, int numAp);
 void inscritApTh(ListeAdherent l);
 void adherentEnRetard(ListeAdherent l); //a faire
 

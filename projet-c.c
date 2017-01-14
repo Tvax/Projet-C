@@ -1,21 +1,21 @@
 #include "projet-c.h"
 #include <time.h>
 
-void affichMenu() {
+void affichMenu(){
 	printf("\n\t---\n\n");
 	printf("1. Inscription nouvel adherent\n");
 	printf("2. Supprimer adherent\n");
 	printf("3. Enregistrer un emprunt\n");
 	printf("4. Enregistrer un apres-midi thematique\n");
 	printf("5. Enregistrer l'inscription d'un adherent a une apres-midi thematique\n");
-	printf("6. Afficher tous les adherents\n");
-	printf("7. Afficher tous les jeux\n");
-	printf("8. Afficher toutes les apres-midis\n");
+	printf("6. Afficher tous les adherents (ordre alphabetique)\n");
+	printf("7. Afficher tous les jeux (ordre alphabetique)\n");
+	printf("8. Afficher toutes les apres-midis (ordre alphabetique)\n");
 	printf("0. Quitter\n");
 }
 
-void menu() {
-	int i, numAd, numJeux;
+void menu(){
+	int i, numAd, numJeux, numAp;
 	ApTh ap;
 
 	ListeAdherent listeAd = chargAdherents("adherents.bin");
@@ -24,12 +24,12 @@ void menu() {
 
 	affichListes(listeAd, listeJeux, listeAp);
 
-	while (true) {
+	while(true){
 		affichMenu();
 		printf("\nChoix: ");
 		scanf("%d", &i);
 
-		switch (i) {
+		switch(i){
 		case 0:
 			printf("Enregistrement\n");
 			saveBin("adherents.bin", "jeux.bin", "apTh.bin", listeAd, listeJeux, listeAp);
@@ -54,28 +54,42 @@ void menu() {
 			printf("Num jeux : ");
 			scanf("%d", &numJeux);
 
-			if (peutEmprunt(listeAd, listeJeux, numAd, numJeux)) {
+			if(peutEmprunt(listeAd, listeJeux, numAd, numJeux)){
 				listeAd = empruntJeuxAd(listeAd, listeJeux, numAd, numJeux);
 				listeJeux = empruntJeuxJ(listeJeux, numJeux);
 			}
 			break;
 		case 4:
-			printf("Ajout d'un Apres midi\n");
+			printf("Ajout d'une apres midi thematique\n");
 
-			printf("Nom/Thematique");
+			printf("Date : ");
+			scanf("%d%d%d", &ap.d.JourIns, &ap.d.MoisIns, &ap.d.AnnIns);
+			if(compDates(getDate(), ap.d) < 0){
+				printf("Date depassee ! \n");
+				break;
+			}
+
+			printf("Nom : ");
 			fflush(stdin);
 			fgets(ap.Nom, sizeof(ap.Nom), stdin);
 			ap.Nom[strlen(ap.Nom) - 1] = '\0';
 
-			printf("date\n");
-			scanf("%d%d%d", &ap.d.JourIns, &ap.d.MoisIns, &ap.d.AnnIns);
-
-			printf("Nombre de places\n");
+			printf("Nombre de places : ");
 			scanf("%d", &ap.nbPlaces);
 
 			listeAp = insAp(listeAp, ap);
 			break;
 		case 5:
+			printf("Inscription a une apres-midi thematique\n");
+			printf("Num adherent : ");
+			scanf("%d", &numAd);
+			printf("Num apres-midi : ");
+			scanf("%d", &numAp);
+
+			if(peutInscrApth(listeAd, listeAp, numAd, numAp)){
+				listeAd = inscripApthAd(listeAd, listeAp, numAd, numAp);
+				listeAp = inscripApthAp(listeAp, numAp);
+			}
 			break;
 		case 6:
 			affichListeAd(listeAd);
@@ -92,11 +106,11 @@ void menu() {
 	}
 }
 
-ListeAdherent empruntJeuxAd(ListeAdherent ad, ListeJeux jeux, int numAd, int numJeux) {
-	while (jeux != NULL) {
-		if (jeux->jeux.codeJeux == numJeux)
-			while (ad != NULL) {
-				if (ad->ad.numAd == numAd) {
+ListeAdherent empruntJeuxAd(ListeAdherent ad, ListeJeux jeux, int numAd, int numJeux){
+	while(jeux != NULL){
+		if(jeux->jeux.codeJeux == numJeux)
+			while(ad != NULL){
+				if(ad->ad.numAd == numAd){
 					ad->ad.nbJeux++;
 					ad->ad.JeuxEmpruntes[ad->ad.nbJeux] = jeux->jeux;
 					break;
@@ -107,10 +121,9 @@ ListeAdherent empruntJeuxAd(ListeAdherent ad, ListeJeux jeux, int numAd, int num
 	}
 	return ad;
 }
-
-ListeJeux empruntJeuxJ(ListeJeux jeux, int numJeux) {
-	while (jeux != NULL) {
-		if (jeux->jeux.codeJeux == numJeux) {
+ListeJeux empruntJeuxJ(ListeJeux jeux, int numJeux){
+	while(jeux != NULL){
+		if(jeux->jeux.codeJeux == numJeux){
 			jeux->jeux.emprunte = true;
 			jeux->jeux.d = getDate();
 			jeux->jeux.d = ajouterUnMois(jeux->jeux.d);
@@ -120,19 +133,110 @@ ListeJeux empruntJeuxJ(ListeJeux jeux, int numJeux) {
 	}
 	return jeux;
 }
+bool peutEmprunt(ListeAdherent l, ListeJeux lJeux, int numAd, int numJeux){
+	Date tmp;
 
-Date ajouterUnMois(Date d) {
-	if (d.MoisIns + 1 > 12) {
-		d.MoisIns = 1;
-		d.AnnIns++;
-		d.JourIns = 31 - d.JourIns;
+	while(l != NULL){
+		if(l->ad.numAd == numAd){
+			if(l->ad.nbJeux == 3){
+				printf("L'adherent emprunte le maximum de jeux autorise\n");
+				return false;
+			}
+			if(l->ad.nbJeux == 1 || l->ad.nbJeux == 2){ //regarde si il y a pas un jeu emprunte plus de 3 semaines
+				int i = 0;
+				for(i; i < 2; i++)
+					if(compDates(getDate(), l->ad.JeuxEmpruntes[i].d) < 0){
+						printf("%s emprunte depuis plus de trois semaines\n", l->ad.JeuxEmpruntes[i].Nom);
+						return false;
+					}
+			}
+			tmp = l->ad.d; //pour voir si une annee apres inscription pas depasse
+			tmp.AnnIns++;
+			if(compDates(getDate(), tmp) < 0){
+				printf("Linscription est terminee\n");
+				return false;
+			}
+		}
+
+		while(lJeux != NULL){
+			if(lJeux->jeux.codeJeux == numJeux){
+				if(lJeux->jeux.emprunte){
+					printf("Jeux deja emprunte");
+					return false;
+				}
+				return true;
+			}
+			lJeux = lJeux->suiv;
+		}
+		l = l->suiv;
 	}
-	else
-		d.MoisIns++;
-	return  d;
+	printf("Num inconnu\n"); //du jeux
+	return false;
 }
 
-Adherent inscriptionAd(int tailleListe) {
+ListeAdherent inscripApthAd(ListeAdherent ad, ListeAp ap, int numAd, int numAp){
+	while(ap != NULL){
+		if(ap->ap.numAp == numAp)
+			while(ad != NULL){
+				if(ad->ad.numAd == numAd){
+					ad->ad.nbApMidi++;
+					ad->ad.ApMidiIns[ad->ad.nbApMidi] = ap->ap;
+					break;
+				}
+				ad = ad->suiv;
+			}
+		ap = ap->suiv;
+	}
+	return ad;
+}
+ListeAp inscripApthAp(ListeAp ap, int numAp){
+	while(ap != NULL){
+		if(ap->ap.numAp == numAp){
+			ap->ap.nbPlaces--;
+			break;
+		}
+		ap = ap->suiv;
+	}
+	return ap;
+}
+bool peutInscrApth(ListeAdherent l, ListeAp ap, int numAd, int numAp){
+	int i;
+	Date tmp;
+	while(l != NULL){
+		if(l->ad.numAd == numAd){
+			if(l->ad.nbApMidi != 0)
+				for(i = 0; i < l->ad.nbApMidi; i++)
+					if(l->ad.ApMidiIns[i].numAp == numAp){
+						printf("Adherent deja inscrit a cette apres-midi\n");
+						return false;
+					}
+			tmp = l->ad.d; //pour voir si une annee apres inscription pas depasse
+			tmp.AnnIns++;
+			if(compDates(getDate(), tmp) < 0){
+				printf("Linscription est terminee\n");
+				return false;
+			}
+		}
+
+		while(ap != NULL){
+			if(ap->ap.numAp == numAp){
+				if(ap->ap.nbPlaces == 0){
+					printf("Plus de places disponibles");
+					return false;
+				}
+				return true;
+			}
+			ap = ap->suiv;
+		}
+		l = l->suiv;
+	}
+	printf("Num inconnu\n"); //du jeux
+	return false;
+}
+
+
+
+Adherent inscriptionAd(int tailleListe){
 	Adherent ad;
 	ad.d = getDate();
 
@@ -152,15 +256,14 @@ Adherent inscriptionAd(int tailleListe) {
 	return ad;
 }
 
-
-ListeAdherent ensVideAd() {
+ListeAdherent ensVideAd(){
 	return NULL;
 }
-ListeAdherent insEnTeteAd(ListeAdherent l, Adherent ad) {
+ListeAdherent insEnTeteAd(ListeAdherent l, Adherent ad){
 
 	MaillonAd *m;
 	m = (MaillonAd *)malloc(sizeof(MaillonAd));
-	if (m == NULL)
+	if(m == NULL)
 		exit(1);
 
 	m->ad = ad;
@@ -168,105 +271,64 @@ ListeAdherent insEnTeteAd(ListeAdherent l, Adherent ad) {
 
 	return m;
 }
-
-void inscritApTh(ListeAdherent l) {
-	while (l != NULL) {
-		if (l->ad.nbApMidi > 0)
+void inscritApTh(ListeAdherent l){
+	while(l != NULL){
+		if(l->ad.nbApMidi > 0)
 			l = insAd(l, l->ad);
 		l = l->suiv;
 	}
 	affichListeAd(l);
 }
+ListeAdherent insAd(ListeAdherent l, Adherent ad){
 
-ListeAdherent insAd(ListeAdherent l, Adherent ad) {
-
-	if (l == NULL)
+	if(l == NULL)
 		return insEnTeteAd(l, ad);
-	if (strcmp(ad.Nom, l->ad.Nom) < 0)
+	if(strcmp(ad.Nom, l->ad.Nom) < 0)
 		return insEnTeteAd(l, ad);
-	if (strcmp(ad.Nom, l->ad.Nom) == 0)
+	if(strcmp(ad.Nom, l->ad.Nom) == 0)
 		return l;
 	l->suiv = insAd(l->suiv, ad);
 	return l;
 }
-ListeAdherent supEnTeteAd(ListeAdherent l) {
+ListeAdherent supEnTeteAd(ListeAdherent l){
 	MaillonAd *m;
 
-	if (l == NULL)
+	if(l == NULL)
 		exit(1);
 	m = l;
 	l = l->suiv;
 	free(m);
 	return l;
 }
-ListeAdherent supAd(ListeAdherent l, int numAd) {
-	if (l == NULL)
+ListeAdherent supAd(ListeAdherent l, int numAd){
+	if(l == NULL)
 		return l;
-	if (numAd < l->ad.numAd)
+	if(numAd < l->ad.numAd)
 		return l;
-	if (numAd == l->ad.numAd)
+	if(numAd == l->ad.numAd)
 		return supEnTeteAd(l);
 
 	l->suiv = supAd(l->suiv, numAd);
 	return l;
 }
-int listTailleAd(ListeAdherent head) {
+int listTailleAd(ListeAdherent head){
 	int len = 0;
-	while (head != NULL) {
+	while(head != NULL){
 		len++;
 		head = head->suiv;
 	}
 	return len;
 }
-bool peutEmprunt(ListeAdherent l, ListeJeux lJeux, int numAd, int numJeux) {
-	Date tmp;
 
-	while (l != NULL) {
-		if (l->ad.numAd == numAd) {
-			if (l->ad.nbJeux == 3) {
-				printf("L'adherent emprunte le maximum de jeux autorise\n");
-				return false;
-			}
-			if (l->ad.nbJeux == 1 || l->ad.nbJeux == 2) { //regarde si il y a pas un jeu emprunte plus de 3 semaines
-				int i = 0;
-				for (i; i < 2; i++)
-					if (compDates(getDate(), l->ad.JeuxEmpruntes[i].d) < 0) {
-						printf("%s emprunte depuis plus de trois semaines\n", l->ad.JeuxEmpruntes[i].Nom);
-						return false;
-					}
-			}
-			tmp = l->ad.d; //pour voir si une annee apres inscription pas depasse
-			tmp.AnnIns++;
-			if (compDates(getDate(), tmp) < 0) {//secondes en une année
-				printf("Linscription est terminee\n");
-				return false;
-			}
-		}
 
-		while (lJeux != NULL) {
-			if (lJeux->jeux.codeJeux == numJeux) {
-				if (lJeux->jeux.emprunte) {
-					printf("Jeux deja emprunte");
-					return false;
-				}
-				return true;
-			}
-			lJeux = lJeux->suiv;
-		}
-		l = l->suiv;
-	}
-	printf("Num d'adherent inconnu\n");
-	return false;
-}
-
-ListeJeux ensVideJeux() {
+ListeJeux ensVideJeux(){
 	return NULL;
 }
-ListeJeux insEnTeteJeux(ListeJeux l, Jeux jeux) {
+ListeJeux insEnTeteJeux(ListeJeux l, Jeux jeux){
 
 	MaillonJeux *m;
 	m = (MaillonJeux *)malloc(sizeof(MaillonJeux));
-	if (m == NULL)
+	if(m == NULL)
 		exit(1);
 
 	m->jeux = jeux;
@@ -275,26 +337,26 @@ ListeJeux insEnTeteJeux(ListeJeux l, Jeux jeux) {
 	return m;
 
 }
-ListeJeux insJeux(ListeJeux l, Jeux jeux) {
+ListeJeux insJeux(ListeJeux l, Jeux jeux){
 
-	if (l == NULL)
+	if(l == NULL)
 		return insEnTeteJeux(l, jeux);
-	if (strcmp(jeux.Nom, l->jeux.Nom) < 0)
+	if(strcmp(jeux.Nom, l->jeux.Nom) < 0)
 		return insEnTeteJeux(l, jeux);
-	if (strcmp(jeux.Nom, l->jeux.Nom) == 0)
+	if(strcmp(jeux.Nom, l->jeux.Nom) == 0)
 		return l;
 	l->suiv = insJeux(l->suiv, jeux);
 	return l;
 }
 
-ListeAp ensVideAp() {
+ListeAp ensVideAp(){
 	return NULL;
 }
-ListeAp insEnTeteAp(ListeAp l, ApTh ap) {
+ListeAp insEnTeteAp(ListeAp l, ApTh ap){
 
 	MaillonAp *m;
 	m = (MaillonAp *)malloc(sizeof(MaillonAp));
-	if (m == NULL)
+	if(m == NULL)
 		exit(1);
 
 	m->ap = ap;
@@ -303,25 +365,25 @@ ListeAp insEnTeteAp(ListeAp l, ApTh ap) {
 	return m;
 
 }
-ListeAp insAp(ListeAp l, ApTh ap) {
+ListeAp insAp(ListeAp l, ApTh ap){
 
-	if (l == NULL)
+	if(l == NULL)
 		return insEnTeteAp(l, ap);
-	if (strcmp(ap.Nom, l->ap.Nom) < 0)
+	if(strcmp(ap.Nom, l->ap.Nom) < 0)
 		return insEnTeteAp(l, ap);
-	if (strcmp(ap.Nom, l->ap.Nom) == 0)
+	if(strcmp(ap.Nom, l->ap.Nom) == 0)
 		return l;
 	l->suiv = insAp(l->suiv, ap);
 	return l;
 }
 
-ListeAdherent chargAdherents(char *nomFic) {
+ListeAdherent chargAdherents(char *nomFic){
 	FILE *fe;
 	fe = fopen(nomFic, "rb");
 	ListeAdherent ad = ensVideAd();
 	Adherent adherent;
 
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", nomFic);
 		exit(1);
 	}
@@ -329,20 +391,20 @@ ListeAdherent chargAdherents(char *nomFic) {
 	fread(&adherent, sizeof(Adherent), 1, fe);
 	ad = insAd(ad, adherent);
 
-	while (!feof(fe)) {
+	while(!feof(fe)){
 		fread(&adherent, sizeof(Adherent), 1, fe);
 		ad = insAd(ad, adherent);
 	}
 	fclose(fe);
 	return ad;
 }
-ListeJeux chargJeux(char *nomFic) {
+ListeJeux chargJeux(char *nomFic){
 	FILE *fe;
 	fe = fopen(nomFic, "rb");
 	ListeJeux listeJeux = ensVideJeux();
 	Jeux jeux;
 
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", nomFic);
 		exit(1);
 	}
@@ -350,20 +412,20 @@ ListeJeux chargJeux(char *nomFic) {
 	fread(&jeux, sizeof(Jeux), 1, fe);
 	listeJeux = insJeux(listeJeux, jeux);
 
-	while (!feof(fe)) {
+	while(!feof(fe)){
 		fread(&jeux, sizeof(Jeux), 1, fe);
 		listeJeux = insJeux(listeJeux, jeux);
 	}
 	fclose(fe);
 	return listeJeux;
 }
-ListeAp chargApTh(char *nomFic) {
+ListeAp chargApTh(char *nomFic){
 	FILE *fe;
 	fe = fopen(nomFic, "rb");
 	ListeAp listeAp = ensVideAp();
 	ApTh ap;
 
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", nomFic);
 		exit(1);
 	}
@@ -371,7 +433,7 @@ ListeAp chargApTh(char *nomFic) {
 	fread(&ap, sizeof(ApTh), 1, fe);
 	listeAp = insAp(listeAp, ap);
 
-	while (!feof(fe)) {
+	while(!feof(fe)){
 		fread(&ap, sizeof(Jeux), 1, fe);
 		listeAp = insAp(listeAp, ap);
 	}
@@ -379,14 +441,14 @@ ListeAp chargApTh(char *nomFic) {
 	return listeAp;
 }
 
-void saveBin(char *adFic, char *jeuxFic, char *apthFic, ListeAdherent ad, ListeJeux jeux, ListeAp ap) {
+void saveBin(char *adFic, char *jeuxFic, char *apthFic, ListeAdherent ad, ListeJeux jeux, ListeAp ap){
 	FILE *fe;
 	fe = fopen(adFic, "wb");
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", adFic);
 		exit(1);
 	}
-	while (ad != NULL) {
+	while(ad != NULL){
 		fwrite(&ad->ad, sizeof(Adherent), 1, fe);
 		ad = ad->suiv;
 	}
@@ -396,11 +458,11 @@ void saveBin(char *adFic, char *jeuxFic, char *apthFic, ListeAdherent ad, ListeJ
 
 
 	fe = fopen(jeuxFic, "wb");
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", jeuxFic);
 		exit(1);
 	}
-	while (jeux != NULL) {
+	while(jeux != NULL){
 		fwrite(&jeux->jeux, sizeof(Jeux), 1, fe);
 		jeux = jeux->suiv;
 	}
@@ -409,11 +471,11 @@ void saveBin(char *adFic, char *jeuxFic, char *apthFic, ListeAdherent ad, ListeJ
 	printf("Sauvegarde 2/3\n");
 
 	fe = fopen(apthFic, "wb");
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", apthFic);
 		exit(1);
 	}
-	while (ap != NULL) {
+	while(ap != NULL){
 		fwrite(&ap->ap, sizeof(ApTh), 1, fe);
 		ap = ap->suiv;
 	}
@@ -422,37 +484,37 @@ void saveBin(char *adFic, char *jeuxFic, char *apthFic, ListeAdherent ad, ListeJ
 	printf("Sauvegarde 3/3\n");
 }
 
-void affichListes(ListeAdherent ad, ListeJeux jeux, ListeAp ap) {
+void affichListes(ListeAdherent ad, ListeJeux jeux, ListeAp ap){
 
 	affichListeAd(ad);
 	affichListeJeux(jeux);
 	affichListeAp(ap);
 }
-void affichListeAd(ListeAdherent ad) {
+void affichListeAd(ListeAdherent ad){
 	int i;
 
 	printf("\t---Adherent---\n");
-	if (ad == NULL) {
+	if(ad == NULL){
 		printf("Aucun adherent");
 		return;
 	}
 
-	while (ad != NULL) {
+	while(ad != NULL){
 		char buffer[100];
 		printf("Numero : %d\n", ad->ad.numAd);
 		printf("Nom : %s\n", ad->ad.Nom);
 		printf("Date Inscription : ");
 		affichDate(ad->ad.d);
 
-		if (ad->ad.nbJeux != 0)
-			for (i = 0; i < ad->ad.nbJeux; i++)
-				printf("Jeux num %d : %s", i, ad->ad.JeuxEmpruntes[i].Nom);
+		if(ad->ad.nbJeux != 0)
+			for(i = 1; i <= ad->ad.nbJeux; i++)
+				printf("Jeux num %d : %s\n", i, ad->ad.JeuxEmpruntes[i].Nom);
 		else
 			printf("Aucun jeux emprunte !\n");
 
-		if (ad->ad.nbApMidi != 0)
-			for (i = 0; i < ad->ad.nbApMidi; i++)
-				printf("Apres-midi num %d : %s", i, ad->ad.ApMidiIns[i]->Nom);
+		if(ad->ad.nbApMidi != 0)
+			for(i = 0; i < ad->ad.nbApMidi; i++)
+				printf("Apres-midi num %d : %s\n", i, ad->ad.ApMidiIns[i].Nom);
 		else
 			printf("Aucune apres-midi reservee !\n");
 
@@ -460,12 +522,12 @@ void affichListeAd(ListeAdherent ad) {
 		printf("\n");
 	}
 }
-void affichListeJeux(ListeJeux jeux) {
+void affichListeJeux(ListeJeux jeux){
 	printf("\t---Jeux---\n");
-	while (jeux != NULL) {
+	while(jeux != NULL){
 		printf("Jeux : %s\n", jeux->jeux.Nom);
 		printf("Numero : %d\n", jeux->jeux.codeJeux);
-		if (jeux->jeux.emprunte)
+		if(jeux->jeux.emprunte)
 			printf("Emprunte\n");
 		else
 			printf("Libre\n");
@@ -473,9 +535,10 @@ void affichListeJeux(ListeJeux jeux) {
 		printf("\n");
 	}
 }
-void affichListeAp(ListeAp ap) {
+void affichListeAp(ListeAp ap){
 	printf("\t---Apres-midi---\n");
-	while (ap != NULL) {
+	while(ap != NULL){
+		printf("Numero : %d\n", ap->ap.numAp);
 		printf("Apres-midi %s\n", ap->ap.Nom);
 		printf("Date inscription : ");
 		affichDate(ap->ap.d);
@@ -485,7 +548,7 @@ void affichListeAp(ListeAp ap) {
 	}
 }
 
-void creerAd() {
+void creerAd(){
 	Adherent ad;
 	strcpy(ad.Nom, "moi");
 
@@ -497,7 +560,7 @@ void creerAd() {
 
 	FILE *fe;
 	fe = fopen("adherents.bin", "wb");
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", "adherents.bin");
 		exit(1);
 	}
@@ -506,11 +569,11 @@ void creerAd() {
 
 	Jeux j;
 	j.codeJeux = 1;
-	j.Nom = "Jeux1";
+	strcpy(j.Nom, "jeux 1");
 	j.emprunte = false;
 
 	fe = fopen("jeux.bin", "wb");
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", "jeux.bin");
 		exit(1);
 	}
@@ -518,14 +581,15 @@ void creerAd() {
 	fclose(fe);
 
 	ApTh a;
-	a.Nom = "Apth";
+	strcpy(a.Nom, "Apth");
 	a.nbPlaces = 2;
 	a.d = getDate();
 	a.d.JourIns++;
+	a.numAp = 1;
 
 
 	fe = fopen("apTh.bin", "wb");
-	if (fe == NULL) {
+	if(fe == NULL){
 		printf("Erreur ouverture %s", "apTh.bin");
 		exit(1);
 	}
@@ -535,11 +599,10 @@ void creerAd() {
 	exit(0);
 }
 
-void affichDate(Date d) {
+void affichDate(Date d){
 	printf("%d/%d/%d\n", d.JourIns, d.MoisIns, d.AnnIns);
 }
-
-Date getDate() {
+Date getDate(){
 	Date d;
 	char jour[10];
 	system("echo %DATE% > date.don");
@@ -550,22 +613,30 @@ Date getDate() {
 	fclose(fe);
 	return d;
 }
-
 //d1 = dateNow d2 = dateAComparer 
 //si le return < 0 ça fait plus de 3 semaines.
-int compDates(Date d1, Date d2) {
+int compDates(Date d1, Date d2){
 	int cmp;
 	cmp = d2.AnnIns - d1.AnnIns;
-	if (cmp == 0) {
+	if(cmp == 0){
 		cmp = d2.MoisIns - d1.MoisIns;
-		if (cmp == 0)
+		if(cmp == 0)
 			cmp = d2.JourIns - d1.JourIns;
 	}
 	return cmp;
 }
+Date ajouterUnMois(Date d){
+	if(d.MoisIns + 1 > 12){
+		d.MoisIns = 1;
+		d.AnnIns++;
+		d.JourIns = 31 - d.JourIns;
+	} else
+		d.MoisIns++;
+	return  d;
+}
 
-int main() {
-	//	creerAd();
+int main(){
+	//creerAd();
 	menu();
 	return 0;
 }
