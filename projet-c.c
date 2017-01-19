@@ -8,9 +8,11 @@ void affichMenu(){
 	printf("3. Enregistrer un emprunt\n");
 	printf("4. Enregistrer un apres-midi thematique\n");
 	printf("5. Enregistrer l'inscription d'un adherent a une apres-midi thematique\n");
-	printf("6. Afficher tous les adherents (ordre alphabetique)\n");
-	printf("7. Afficher tous les jeux (ordre alphabetique)\n");
-	printf("8. Afficher toutes les apres-midis (ordre alphabetique)\n");
+	printf("6. Adherents inscrits a une apres-midi thematique\n");
+	printf("7. Emprunteur en retard\n");
+	printf("8. Afficher tous les adherents (ordre alphabetique)\n");
+	printf("9. Afficher tous les jeux (ordre alphabetique)\n");
+	printf("10. Afficher toutes les apres-midis (ordre alphabetique)\n");
 	printf("0. Quitter\n");
 }
 
@@ -76,7 +78,7 @@ void menu(){
 
 			printf("Nombre de places : ");
 			scanf("%d", &ap.nbPlaces);
-
+			ap.numAp++;
 			listeAp = insAp(listeAp, ap);
 			break;
 		case 5:
@@ -92,12 +94,20 @@ void menu(){
 			}
 			break;
 		case 6:
-			affichListeAd(listeAd);
+			printf("Liste Inscrits a une apres-midi\n");
+			printf("Numero apres-midi: ");
+			scanf("%d", &numAp);
+			inscritApthPrecise(listeAd, numAp);
 			break;
 		case 7:
-			affichListeJeux(listeJeux);
 			break;
 		case 8:
+			affichListeAd(listeAd);
+			break;
+		case 9:
+			affichListeJeux(listeJeux);
+			break;
+		case 10:
 			affichListeAp(listeAp);
 			break;
 		default:
@@ -175,11 +185,16 @@ bool peutEmprunt(ListeAdherent l, ListeJeux lJeux, int numAd, int numJeux){
 }
 
 ListeAdherent inscripApthAd(ListeAdherent ad, ListeAp ap, int numAd, int numAp){
+	ApTh tmp[50];
 	while(ap != NULL){
 		if(ap->ap.numAp == numAp)
 			while(ad != NULL){
 				if(ad->ad.numAd == numAd){
 					ad->ad.nbApMidi++;
+					if(ad->ad.nbApMidi > 50){
+						printf("Nombre maximum d'apres-midi thematique depasse !\n");
+						return ad;
+					}
 					ad->ad.ApMidiIns[ad->ad.nbApMidi] = ap->ap;
 					break;
 				}
@@ -234,7 +249,31 @@ bool peutInscrApth(ListeAdherent l, ListeAp ap, int numAd, int numAp){
 	return false;
 }
 
+void inscritApthPrecise(ListeAdherent l, int numAp){
+	int i;
 
+	while(l != NULL){
+		for(i = 0; i <= l->ad.nbApMidi; i++)
+			if(l->ad.ApMidiIns[i].numAp == numAp)
+				printf("%s", l->ad.Nom);
+		l = l->suiv;
+	}
+}
+void empruntRet(ListeAdherent l, ListeJeux j){
+	int i;
+
+	while(l != NULL){
+		for(i = 0; i < l->ad.nbJeux; i++)
+			while(j != NULL){
+				if(l->ad.JeuxEmpruntes[i].codeJeux == j->jeux.codeJeux)
+					if(compDates(getDate(), j->jeux.d) < 0)
+					   printf("%s a depasse le delai de location pour %s", l->ad.Nom, j->jeux.Nom);
+
+				j = j->suiv;
+			}
+		l = l->suiv;
+	}
+}
 
 Adherent inscriptionAd(int tailleListe){
 	Adherent ad;
@@ -513,7 +552,7 @@ void affichListeAd(ListeAdherent ad){
 			printf("Aucun jeux emprunte !\n");
 
 		if(ad->ad.nbApMidi != 0)
-			for(i = 0; i < ad->ad.nbApMidi; i++)
+			for(i = 1; i != ad->ad.nbApMidi; i++)
 				printf("Apres-midi num %d : %s\n", i, ad->ad.ApMidiIns[i].Nom);
 		else
 			printf("Aucune apres-midi reservee !\n");
@@ -544,7 +583,7 @@ void affichListeAp(ListeAp ap){
 		affichDate(ap->ap.d);
 		printf("Place(s) restante(s) : %d", ap->ap.nbPlaces);
 		ap = ap->suiv;
-		printf("\n");
+		printf("\n\n");
 	}
 }
 

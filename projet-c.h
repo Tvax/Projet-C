@@ -11,8 +11,8 @@ typedef struct {
 typedef struct {
 	char Nom[20];
 	int codeJeux;
-	Date d;
-	bool emprunte; //si un jeux est emprunte ou non;
+	Date d; //date a laquelle location se termine
+	bool emprunte; //si un jeux est emprunte ou non
 }Jeux;
 typedef struct {
 	char Nom[20];
@@ -27,7 +27,7 @@ typedef struct {
 	Jeux JeuxEmpruntes[3]; //3 parce qu'on commence a 1 et pas à 0
 	int nbJeux;
 	Date d;
-	ApTh *ApMidiIns;
+	ApTh ApMidiIns[50];
 	int nbApMidi;
 }Adherent;
 
@@ -69,8 +69,8 @@ bool peutInscrApth(ListeAdherent l, ListeAp ap, int numAd, int numAp);
 ListeAdherent inscripApthAd(ListeAdherent ad, ListeAp ap, int numAd, int numAp);
 ListeAp inscripApthAp(ListeAp ap, int numAp);
 void inscritApTh(ListeAdherent l);
-void adherentEnRetard(ListeAdherent l); //a faire
-
+void inscritApthPrecise(ListeAdherent l, int numAp);
+void empruntRet(ListeAdherent l, ListeJeux j);
 
 ListeJeux ensVideJeux();
 ListeJeux insEnTeteJeux(ListeJeux l, Jeux jeux);
